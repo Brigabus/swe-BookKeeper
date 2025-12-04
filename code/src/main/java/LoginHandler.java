@@ -119,8 +119,25 @@ public class LoginHandler {
             return 0;
         }
 
-        public String getUserType(String username){
-            String sql = "SELECT account_type FROM users WHERE username = '" + username + "'";
+        public String getUserName(int userID){
+            String sql = "SELECT username FROM users WHERE id = '" + userID + "'";
+            try (Connection conn = DriverManager.getConnection(DB_URL)){
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql);
+
+                if(rs.next()){
+                    return rs.getString("username");
+                }
+
+
+            } catch(SQLException e){
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        public String getUserType(int userID){
+            String sql = "SELECT account_type FROM users WHERE id = " + userID;
             try (Connection conn = DriverManager.getConnection(DB_URL)){
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(sql);

@@ -104,11 +104,13 @@ public class LogInWindow {
     //This is the function that is run when user login is successful. It will do some small things, then move the user on to the next program state, depending on the user account type.
     private void loginUser(String username){
         int userID = loginHandler.getUserID(username);
-        String userType = loginHandler.getUserType(username);
+        String userType = loginHandler.getUserType(userID);
         System.out.println("ID: " + userID + " Account Type: " + userType);
         JOptionPane.showMessageDialog(frame, "Welcome " + username + "!\n Account Type: " + userType, "LOGIN SUCCESSFUL!", JOptionPane.INFORMATION_MESSAGE);
 
-        //THIS IS WHERE WE'LL PUT OUR CONTINUATION INTO THE NEXT STATE!!!
+        //Now that the user has successfully logged in, we can create the main schedule view window, while also sending along the already authenticated userID.
+        //We're also sending over the location of the login frame to make it a bit more seamless when switching frames to the main application window.
+        ScheduleWindow window = new ScheduleWindow(userID, frame.getLocation());
     }
 
     //This function is called to bring up the user creation window, as part of the newUserWindow class.

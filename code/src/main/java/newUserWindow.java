@@ -95,7 +95,7 @@ public class newUserWindow {
         frame.add(nuPanel);
         frame.setSize(500, 300);
         frame.setLocationRelativeTo(null);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setVisible(true);
     }
 }
