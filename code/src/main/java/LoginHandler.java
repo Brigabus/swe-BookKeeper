@@ -40,6 +40,7 @@ public class LoginHandler {
                         """;
                 stmt.execute(sql);
 
+                //TEST VALUES
                 String insert = """
                         INSERT OR IGNORE INTO users(username, password, account_type)
                         VALUES
@@ -50,7 +51,7 @@ public class LoginHandler {
                 stmt.execute(insert);
 
                 //Print this to indicate no exceptions have been thrown.
-                System.out.println("Database initialized successfuly.");
+                System.out.println("Login Database initialized without error.");
 
             //We'll use the catch to handle sql exceptions thrown by conn
             } catch(SQLException e){
