@@ -1,4 +1,6 @@
 import java.sql.*;
+import java.io.File;
+import java.net.URISyntaxException;
 
 public class LoginHandler {
     //BookKeeper will use SQLite instead of mySQL. This is to keep the project portable.
@@ -8,10 +10,19 @@ public class LoginHandler {
      */
 
         //This string specifies the file that our database will be stored in.
-        private static final String DB_URL = "jdbc:sqlite:login.db";
+        private static String DB_URL;
 
         //This function is used to initialize a database in the specified url (our login.db)
         public static void initialize(){
+
+            File jarFile = getJarDirectory(Main.class);
+            File jarDir = jarFile.getParentFile();
+
+            File dbFile = new File(jarDir, "login.db");
+            DB_URL = "jdbc:sqlite:" + dbFile.getAbsolutePath();
+            System.out.println(DB_URL);
+
+
             //Try and catch is used to deal with any exceptions thrown by our SQL integration.
             //The try block also stops the connection to the database (conn) once we've finished using it.
             try (Connection conn = DriverManager.getConnection(DB_URL)){
@@ -45,6 +56,24 @@ public class LoginHandler {
             } catch(SQLException e){
                 e.printStackTrace();
 
+            }
+        }
+
+        /*
+        This is another thing that AI helped me figure out. I wanted to be able to run the program as a single jar file
+        but that introduced a host of complications regarding creating and populating new database files at runtime.
+        This function is used solely to tell where the jar file is located on the system that is currently running it so that
+        it can create and use database files in that directory instead of C:User/ which is where it runs by default and also lacks
+        write access, so it isn't able to initialize the database. It's got AI fingerprints throughout it, but it's a small unnecessary feature
+        that I wanted to add as a learning experience, so I don't mind. This has no real effect when running from the IDE other than moving where login.db is located,
+        so in that sense it's completely superfluous and entirely unneeded.
+         */
+        public static File getJarDirectory(Class<?> mainClass){
+            try{
+                File jarFile = new File(mainClass.getProtectionDomain().getCodeSource().getLocation().toURI());
+                return jarFile;
+            }catch(Exception e){
+                throw new RuntimeException("Unable to determine JAR directory", e);
             }
         }
 
