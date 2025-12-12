@@ -48,7 +48,7 @@ public class LoginHandler {
                         ('teacher1', 'teacherpass', 'Teacher'),
                         ('admin1', 'adminpass', 'Admin');
                         """;
-                stmt.execute(insert);
+                //stmt.execute(insert);
 
                 //Print this to indicate no exceptions have been thrown.
                 System.out.println("Login Database initialized without error.");
@@ -149,6 +149,7 @@ public class LoginHandler {
             return 0;
         }
 
+        //GetUserName and GetUserType were added later as we found that functionality rather useful to have
         public String getUserName(int userID){
             String sql = "SELECT username FROM users WHERE id = '" + userID + "'";
             try (Connection conn = DriverManager.getConnection(DB_URL)){
@@ -163,6 +164,7 @@ public class LoginHandler {
             } catch(SQLException e){
                 e.printStackTrace();
             }
+            //We should not be able to get here
             return null;
         }
 
@@ -180,8 +182,45 @@ public class LoginHandler {
             } catch(SQLException e){
                 e.printStackTrace();
             }
+            //If there are any issues returning the user's account type, we return student for safety. This should never happen though.
             return "Student";
         }
+
+        //Similar to our original create user function, this one returns a boolean to notify the user of success.
+    // This could probably be changed to provide a new object like userCreationResult, but it fell outside of our time budget.
+    public boolean updateUser(int userID, String newUsername, String newPassword) {
+        String sql;
+
+        //This is the other half of our account management tab.
+        //If the password hasn't been updated by the user the save button will pass the new password down as null. we can detect that here to
+        //avoid updating the user's password.
+        if (newPassword == null) {
+            sql = "UPDATE users SET username = ? WHERE id = ?";
+        } else {
+            sql = "UPDATE users SET username = ?, password = ? WHERE id = ?";
+        }
+
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            PreparedStatement stmt = conn.prepareStatement(sql);
+
+            if (newPassword == null) {
+                stmt.setString(1, newUsername);
+                stmt.setInt(2, userID);
+            } else {
+                stmt.setString(1, newUsername);
+                stmt.setString(2, newPassword);
+                stmt.setInt(3, userID);
+            }
+
+            int rows = stmt.executeUpdate();
+            return rows > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
 
 
 }

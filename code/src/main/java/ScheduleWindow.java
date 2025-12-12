@@ -17,9 +17,9 @@ public class ScheduleWindow {
     private JTabbedPane tabPane = new JTabbedPane();
     private ScheduleView currentSchedule;
     private LoginHandler loginHandler;
-    private int userID;
-    private String username;
-    private String accountType;
+    public int userID;
+    public String username;
+    public String accountType;
     private AccountManageTab accountManageTab;
     private AdminActionsTab adminActionsTab;
     private ManageBookingsTab manageBookingsTab;
@@ -45,12 +45,14 @@ public class ScheduleWindow {
         this.accountManageTab = new AccountManageTab(userID);
 
         if(this.accountType.equals("Teacher") || this.accountType.equals("Admin")){
-            this.manageBookingsTab = new ManageBookingsTab();
+            this.manageBookingsTab = new ManageBookingsTab(this.userID, this.scheduleHandler);
             tabPane.addTab("Manage Bookings", null, manageBookingsTab, "Manage Bookings");
         }
         if(this.accountType.equals("Admin")){
             this.adminActionsTab = new AdminActionsTab();
-            tabPane.addTab("Admin Actions", null, adminActionsTab, "Admin Actions");
+            //tabPane.addTab("Admin Actions", null, adminActionsTab, "Admin Actions");
+            //We originally wanted to add an admin actions tab here that would allow the admin to do things like manage user accounts or add rooms
+            //similarly to how we implemented them in our databases project, but we ultimately had to cut them for time.
         }
         //All users have access to the account management tab
         tabPane.addTab("Account Management",null, accountManageTab, "Account Management");
@@ -132,32 +134,42 @@ public class ScheduleWindow {
 
     //This function exists solely to hold code that looked messy in the main constructor.
     //All it does is set up different panels and gbc constraints to make the program look nicer.
-    private void setupSchedulePanel(){
+    private void setupSchedulePanel() {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(3, 5, 3, 5);
         gbc.gridy = 0;
-        //Here we'll set up each of our panels for the top layer
-        //Panel 0
+
         gbc.gridx = 0;
-        gbc.gridwidth=1;
+        gbc.gridwidth = 1;
         JLabel roomPickerLabel = new JLabel("Room: ");
         roomSwitchPanel.add(new JPanel().add(roomPickerLabel), gbc);
 
-        //Panel 1
         gbc.gridx = 1;
-        gbc.weightx=1;
+        gbc.weightx = 1;
         roomSwitchPanel.add(roomPicker, gbc);
 
-        //panel 2
+
         gbc.gridx = 2;
         gbc.gridwidth = 5;
         roomSwitchPanel.add(new JPanel().add(scheduleLabel), gbc);
 
-        //panel 8
-        gbc.gridx=8;
+
+        gbc.gridx = 7;
         gbc.gridwidth = 1;
         roomSwitchPanel.add(new JPanel().add(new JLabel(" ")), gbc);
 
+
+        gbc.gridx = 8;
+        //We wanted to add a refresh button here in case any changes were made using the click functionality of our timeslots, as those don't update
+        //the scheduleview like changing rooms or weeks.
+        JButton refreshButton = new JButton("Refresh");
+        refreshButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                updateSchedule(currentRoomNum, currentStartDate, ScheduleWindow.this);
+            }
+        });
+        roomSwitchPanel.add(refreshButton, gbc);
     }
 
     //This is the function where we outsource the roomPicker update to so we can pass down the window variable as this.
@@ -172,61 +184,78 @@ public class ScheduleWindow {
 Timeslot is it's own seperate class so that it can be modified in the future. Upon initial creation, its only function is
 to create nice looking panels for each timeslot, but eventually it will be updated to hold event functionality on a clicklistener
  */
-class TimeSlot extends JPanel{
+class TimeSlot extends JPanel {
 
     private final LocalDate date;
     private final LocalTime time;
     private final int roomNum;
     private booking slotBooking;
     private static final DateTimeFormatter FORMAT_12H = DateTimeFormatter.ofPattern("h a");
+    private ScheduleWindow window;
 
-    public TimeSlot(int roomNum, LocalDate date, LocalTime time, ScheduleHandler scheduleHandler){
+    public TimeSlot(int roomNum, LocalDate date, LocalTime time, ScheduleHandler scheduleHandler, ScheduleWindow window) {
         this.date = date;
         this.time = time;
         this.roomNum = roomNum;
+        this.window = window;
         LocalDateTime dateTime = date.atTime(time);
 
-        //Upon creation, every timeslot will check the database schedule to see if an event is currently planned within it's time at the specified room.
+        // Check if theres an existing booking in the current slot, and set it to our current slotBooking variable if so
         this.slotBooking = scheduleHandler.getBooking(roomNum, dateTime);
 
         JLabel label = new JLabel();
+        setLayout(new BorderLayout());
 
-        if(slotBooking != null){
-            //If a booking is found we can change the look and function of the slot and populate it with info about out booking
-            System.out.println("Booking Found");
-            setBorder(BorderFactory.createLineBorder(Color.green, 1));
-            setBackground(Color.green);
+        if (slotBooking != null) {
+            //If a booking was found and set as our slotBooking, then we can populate the slot accordingly
+            setBorder(BorderFactory.createLineBorder(Color.black, 1));
+            setBackground(slotBooking.getBookingColor());
 
             label.setText(slotBooking.eventName);
             label.setFont(new Font("Arial", Font.PLAIN, 10));
+            //I specifically wanted the cursor to change to the hand cursor when hovering over booked timeslots
+            //to let the user know they can interact with it by clicking on it.
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            setToolTipText("<html>" + slotBooking.eventName + "<br>" + slotBooking.timeStart.toString() + " to " + slotBooking.timeEnd.toString() + "<br>Created by: " + slotBooking.authorName + "</html>");
-            //We'll add a mouse listener so the user can click on the booking to bring up more information about it, or make changes if possible
+            //We use html in the tooltip text (apparently you can do that) to add line breaks in on the mouse hovering tool-tip so we can add more information
+            setToolTipText("<html>" + slotBooking.eventName + "<br>" +
+                    slotBooking.timeStart.toString() + " to " + slotBooking.timeEnd.toString() +
+                    "<br>Created by: " + slotBooking.authorName + "</html>");
+
             addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    super.mouseClicked(e);
-                    System.out.println("Clicked on event");
+                    new BookingInfoWindow(window.userID, window.accountType, slotBooking, scheduleHandler);
                 }
             });
 
-        }else{
-            //if no booking is found, we can set the timeslot to be empty
+        } else {
+            //Originally, empty slots just displayed their time and weren't interactable, but we wanted to add
+            //a feature where you could click them to add a new booking. This was easy enough to do because we handled
+            //new bookings in a seperate window, but we had to add a second constructor to the newbookingwindow to account for it.
             setBorder(BorderFactory.createLineBorder(Color.gray, 1));
             setBackground(Color.white);
 
-            String labelText = time.format(FORMAT_12H);
-            label.setText(labelText);
+            label.setText(time.format(FORMAT_12H));
             label.setFont(new Font("Arial", Font.PLAIN, 10));
-        }
-        //I'm sure there is a more efficient way to check for timeslots, as opposed to polling the database for every hour of a week, but due to time constraints
-        //I decided to just use this method because it works.
 
-        setLayout(new BorderLayout());
+
+            //We only want teachers or admins to be able to create bookings, so we check for that here.
+            if (window.accountType.equals("Teacher") || window.accountType.equals("Admin")) {
+                addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        LocalDateTime startDateTime = date.atTime(time);
+                        LocalDateTime endDateTime = startDateTime.plusHours(1); // default 1-hour slot
+                        new NewBookingWindow(window.username, window.userID, window.accountType, roomNum, startDateTime, endDateTime, window.scheduleHandler);
+                    }
+                });
+            }
+        }
+
         add(label, BorderLayout.CENTER);
     }
-
 }
+
 
 //ScheduleGrid is the main body of the schedule. it takes the individual timeslot panels and arranges them accordingly.
 class ScheduleGrid extends JPanel{
@@ -235,11 +264,13 @@ class ScheduleGrid extends JPanel{
     private final int hours = 8;
     private int roomNum;
     private ScheduleHandler scheduleHandler;
+    private ScheduleWindow window;
 
-    public ScheduleGrid(int roomNum, LocalDate startOfWeek, ScheduleHandler scheduleHandler){
+    public ScheduleGrid(int roomNum, LocalDate startOfWeek, ScheduleHandler scheduleHandler, ScheduleWindow window){
         this.roomNum = roomNum;
         this.startOfWeek = startOfWeek;
         this.scheduleHandler = scheduleHandler;
+        this.window = window;
 
         setLayout(new GridLayout(hours, days));
         buildGrid();
@@ -251,7 +282,7 @@ class ScheduleGrid extends JPanel{
                 LocalDate date = startOfWeek.plusDays(day);
                 LocalTime time = LocalTime.of(hour, 0);
 
-                TimeSlot slot = new TimeSlot(roomNum, date, time, scheduleHandler);
+                TimeSlot slot = new TimeSlot(roomNum, date, time, scheduleHandler, window);
                 add(slot);
             }
         }
@@ -269,7 +300,7 @@ class ScheduleView extends JPanel{
 
     public ScheduleView(LocalDate startDate, ScheduleWindow window, int roomNum, ScheduleHandler scheduleHandler){
         this.window = window;
-        this.grid = new ScheduleGrid(roomNum, startDate, scheduleHandler);
+        this.grid = new ScheduleGrid(roomNum, startDate, scheduleHandler, window);
         this.startDate = startDate;
 
         setLayout(new GridBagLayout());
