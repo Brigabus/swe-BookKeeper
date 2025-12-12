@@ -7,9 +7,9 @@ We're using a Maven Java environment and SQLite for database implementations
 INSTALLATION INSTRUCTIONS:
 
 Option A:
-> Download the jar file from the releases section.
-> Place the jar file in a folder on your PC
-> Run the jar file
+> Download the BookKeeper-Standalone.zip file from the releases section.
+> Extract the included folder somewhere on your PC
+> Run the run.bat file (Or start the jar file using 'java -jar SWE-BookKeeper.jar')
 	>The jar file should create any additional files it needs to run upon execution
 
 OPTION B:
